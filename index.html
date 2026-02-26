@@ -419,6 +419,18 @@
   #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .input-hint { font-size: 11px; color: var(--text2); margin-top: 8px; text-align: center; }
 
+  /* file:// warning banner */
+  #file-banner {
+    position: fixed; top: 56px; left: 0; right: 0; z-index: 90;
+    background: #92400e; color: #fef3c7;
+    padding: 10px 24px; font-size: 13px; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  #file-banner a { color: #fde68a; font-weight: 600; }
+  body.has-banner #landing,
+  body.has-banner #chat { padding-top: calc(56px + 40px) !important; }
+  body.has-banner #topbar + * { margin-top: 40px; }
+
   /* error toast */
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -443,6 +455,12 @@
 </style>
 </head>
 <body data-theme="dark">
+
+<!-- FILE:// WARNING BANNER (shown only when opened directly, not via HTTP) -->
+<div id="file-banner" class="hidden">
+  ⚠️ CORS blocked: open this page via <strong>GitHub Pages</strong> or a local server — not from <code>file://</code>.
+  &nbsp;<a href="https://yueminggao.github.io/ai-persona-chat/" target="_blank">Open on GitHub Pages →</a>
+</div>
 
 <!-- TOP BAR -->
 <div id="topbar">
@@ -829,6 +847,12 @@ function init() {
   applyTheme(state.theme);
   renderPersonas('all');
   updateApiPill();
+
+  // Warn when opened from file:// (CORS will block API calls)
+  if (location.protocol === 'file:') {
+    $('file-banner').classList.remove('hidden');
+    document.body.classList.add('has-banner');
+  }
 
   // Event bindings
   $('theme-btn').onclick = toggleTheme;
@@ -1233,6 +1257,12 @@ function handleApiError(err) {
     msg = 'Claude is currently overloaded. Please try again in a moment.';
   } else if (!navigator.onLine) {
     msg = 'No internet connection. Check your network and try again.';
+  } else if (err.name === 'TypeError' || (err.message && err.message.toLowerCase().includes('fetch'))) {
+    if (location.protocol === 'file:') {
+      msg = 'CORS blocked — you must open this page via GitHub Pages or a local server, not file://. See the banner above.';
+    } else {
+      msg = 'Network error reaching the Anthropic API. Check your internet connection and try again.';
+    }
   } else if (err.message) {
     msg = err.message;
   }
