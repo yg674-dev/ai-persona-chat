@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExpertChat — AI Expert Personas Powered by Claude</title>
-<meta name="description" content="Chat with AI experts in tech, business, and creative fields. Get domain-specific insights powered by Claude.">
+<title>ExpertChat — AI Expert Personas</title>
+<meta name="description" content="Chat with AI experts in tech, business, and creative fields. Get domain-specific insights powered by Claude or OpenAI.">
 <link rel="canonical" href="https://yg674-dev.github.io/ai-persona-chat/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -473,6 +473,21 @@
   }
   #toast.show { opacity: 1; pointer-events: auto; }
 
+  /* ── PROVIDER TABS (modal) ── */
+  .provider-tabs {
+    display: flex; gap: 4px; margin-bottom: 20px;
+    background: var(--bg3); border-radius: var(--radius-sm); padding: 4px;
+  }
+  .provider-tab {
+    flex: 1; padding: 8px; border-radius: 6px;
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    background: transparent; transition: all var(--transition);
+  }
+  .provider-tab.active {
+    background: var(--bg2); color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
   /* Mobile */
   @media (max-width: 700px) {
     #sidebar { display: none; }
@@ -506,7 +521,7 @@
 <div id="landing">
   <div class="hero">
     <h1>Chat with AI Experts</h1>
-    <p>Select an expert persona and get domain-specific insights powered by Claude. From tech and product to business and creative—each persona is tuned for its field.</p>
+    <p>Select an expert persona and get domain-specific insights powered by Claude or OpenAI. From tech and product to business and creative—each persona is tuned for its field.</p>
     <div class="api-pill" id="api-status-pill">
       <span class="dot no-key" id="api-dot"></span>
       <span id="api-status-text">Add API Key to start</span>
@@ -525,7 +540,7 @@
     <!-- rendered by JS -->
   </div>
   <footer class="landing-footer">
-    <p>Powered by Claude · Your API key stays in your browser</p>
+    <p>Powered by Claude or OpenAI · Your API key stays in your browser</p>
   </footer>
 </div>
 
@@ -533,15 +548,19 @@
 <div id="modal-overlay" class="hidden">
   <div class="modal">
     <button class="modal-close" id="modal-close-btn">✕</button>
-    <h2>🔑 Enter API Key</h2>
-    <p>Your Anthropic API key is stored only in your browser's localStorage and never sent anywhere except the official Anthropic API.</p>
+    <h2>🔑 API Key Settings</h2>
+    <p>Your API key is stored only in your browser's localStorage and never sent anywhere except the official API.</p>
+    <div class="provider-tabs">
+      <button class="provider-tab active" data-provider="anthropic">Anthropic</button>
+      <button class="provider-tab" data-provider="openai">OpenAI</button>
+    </div>
     <div class="field" id="api-key-field">
-      <label>Anthropic API Key</label>
+      <label id="api-key-label">Anthropic API Key</label>
       <div class="api-key-wrap">
         <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" />
         <button type="button" class="toggle-visibility" id="toggle-key-visibility" title="Show/hide key">👁</button>
       </div>
-      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="get-key-link">Get your API key from Anthropic Console →</a>
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="get-key-link" id="get-key-link">Get your API key from Anthropic Console →</a>
     </div>
     <div id="modal-error"></div>
     <div class="modal-btns">
@@ -576,7 +595,7 @@
       <div class="chat-header-info">
         <div class="chat-header-name" id="ch-name"></div>
         <div class="chat-header-status">
-          <span class="status-dot"></span> Online · Claude claude-sonnet-4-6
+          <span class="status-dot"></span> <span id="ch-model">Online · Claude claude-sonnet-4-6</span>
         </div>
       </div>
     </div>
@@ -1010,18 +1029,29 @@ Your approach: put the reader first. Use clear structure (headers, lists, tables
 ];
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-const KEY_API = 'persona_chat_api_key';
-const KEY_LAST = 'persona_chat_last_persona';
-const MODEL = 'claude-sonnet-4-6';
+const KEY_API_ANTHROPIC = 'persona_chat_api_key';          // keep old name for compat
+const KEY_API_OPENAI    = 'persona_chat_api_key_openai';
+const KEY_PROVIDER      = 'persona_chat_provider';
+const KEY_LAST          = 'persona_chat_last_persona';
+const MODEL_ANTHROPIC   = 'claude-sonnet-4-6';
+const MODEL_OPENAI      = 'gpt-4o';
 
 let state = {
-  apiKey: localStorage.getItem(KEY_API) || '',
+  apiKeyAnthropic: localStorage.getItem(KEY_API_ANTHROPIC) || '',
+  apiKeyOpenAI:    localStorage.getItem(KEY_API_OPENAI)    || '',
+  provider:        localStorage.getItem(KEY_PROVIDER)      || 'anthropic', // 'anthropic' | 'openai'
   currentPersona: null,
   messages: [],       // { role, content }
   streaming: false,
   theme: localStorage.getItem('persona_chat_theme') || 'dark',
   pendingPersonaId: null  // persona selected before key entered
 };
+
+function currentApiKey() {
+  return state.provider === 'openai' ? state.apiKeyOpenAI : state.apiKeyAnthropic;
+}
+
+let modalProvider = 'anthropic'; // tracks selected tab inside the modal
 
 // ─── DOM REFS ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -1053,6 +1083,10 @@ function init() {
   $('toggle-key-visibility').onclick = toggleKeyVisibility;
   modalOverlay.onclick = e => { if (e.target === modalOverlay) closeModal(); };
 
+  document.querySelectorAll('.provider-tab').forEach(t => {
+    t.onclick = () => { modalProvider = t.dataset.provider; syncModalForProvider(); };
+  });
+
   $('switch-persona-btn').onclick = switchPersona;
   $('clear-chat-btn').onclick = clearChat;
   $('send-btn').onclick = sendMessage;
@@ -1083,9 +1117,11 @@ function toggleTheme() {
 function updateApiPill() {
   const dot = $('api-dot');
   const txt = $('api-status-text');
-  if (state.apiKey) {
+  const key = currentApiKey();
+  const providerLabel = state.provider === 'openai' ? 'OpenAI' : 'Anthropic';
+  if (key) {
     dot.classList.remove('no-key');
-    txt.textContent = 'API Key set · click to change';
+    txt.textContent = `${providerLabel} key set · click to change`;
   } else {
     dot.classList.add('no-key');
     txt.textContent = 'Add API Key to start';
@@ -1094,7 +1130,8 @@ function updateApiPill() {
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 function openModal() {
-  $('api-key-input').value = state.apiKey;
+  modalProvider = state.provider;
+  syncModalForProvider();
   $('api-key-input').type = 'password';
   $('toggle-key-visibility').textContent = '👁';
   $('toggle-key-visibility').title = 'Show key';
@@ -1121,14 +1158,51 @@ function toggleKeyVisibility() {
   }
 }
 
-function validateApiKeyFormat(key) {
+function syncModalForProvider() {
+  const isOpenAI = modalProvider === 'openai';
+  document.querySelectorAll('.provider-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.provider === modalProvider)
+  );
+  $('api-key-input').value    = isOpenAI ? state.apiKeyOpenAI : state.apiKeyAnthropic;
+  $('api-key-label').textContent = isOpenAI ? 'OpenAI API Key' : 'Anthropic API Key';
+  $('api-key-input').placeholder = isOpenAI ? 'sk-proj-...' : 'sk-ant-api03-...';
+  $('get-key-link').href        = isOpenAI
+    ? 'https://platform.openai.com/api-keys'
+    : 'https://console.anthropic.com/settings/keys';
+  $('get-key-link').textContent = isOpenAI
+    ? 'Get your API key from OpenAI Platform →'
+    : 'Get your API key from Anthropic Console →';
+  $('modal-error').textContent = '';
+  $('api-key-field').classList.remove('input-error');
+}
+
+function validateApiKeyFormat(key, provider) {
   const trimmed = key.trim();
   if (!trimmed) return { ok: false, msg: 'Please enter your API key.' };
-  if (!trimmed.startsWith('sk-ant-')) {
-    return { ok: false, msg: 'Anthropic keys start with sk-ant-. Get one at console.anthropic.com' };
+  if (provider === 'anthropic') {
+    if (!trimmed.startsWith('sk-ant-'))
+      return { ok: false, msg: 'Anthropic keys start with sk-ant-. Get one at console.anthropic.com' };
+    if (trimmed.length < 40)
+      return { ok: false, msg: 'Key seems too short. Check for typos.' };
+  } else {
+    if (!trimmed.startsWith('sk-'))
+      return { ok: false, msg: 'OpenAI keys start with sk-. Get one at platform.openai.com' };
+    if (trimmed.length < 20)
+      return { ok: false, msg: 'Key seems too short. Check for typos.' };
   }
-  if (trimmed.length < 40) return { ok: false, msg: 'Key seems too short. Check for typos.' };
   return { ok: true };
+}
+
+function persistKey(provider, val) {
+  if (provider === 'anthropic') {
+    state.apiKeyAnthropic = val;
+    localStorage.setItem(KEY_API_ANTHROPIC, val);
+  } else {
+    state.apiKeyOpenAI = val;
+    localStorage.setItem(KEY_API_OPENAI, val);
+  }
+  state.provider = provider;
+  localStorage.setItem(KEY_PROVIDER, provider);
 }
 
 async function saveApiKey() {
@@ -1140,7 +1214,7 @@ async function saveApiKey() {
   errEl.textContent = '';
   fieldEl.classList.remove('input-error');
 
-  const validation = validateApiKeyFormat(val);
+  const validation = validateApiKeyFormat(val, modalProvider);
   if (!validation.ok) {
     errEl.textContent = validation.msg;
     fieldEl.classList.add('input-error');
@@ -1151,19 +1225,30 @@ async function saveApiKey() {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Verifying...';
 
+  const isOpenAI = modalProvider === 'openai';
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': val,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true'
-      }
-    });
+    let res;
+    if (isOpenAI) {
+      res = await fetch('https://api.openai.com/v1/models', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${val}` }
+      });
+    } else {
+      res = await fetch('https://api.anthropic.com/v1/models', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': val,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-calls': 'true'
+        }
+      });
+    }
 
     if (res.status === 401) {
-      errEl.textContent = 'Invalid API key. Check it at console.anthropic.com and try again.';
+      const hint = isOpenAI ? 'platform.openai.com' : 'console.anthropic.com';
+      errEl.textContent = `Invalid API key. Check it at ${hint} and try again.`;
       fieldEl.classList.add('input-error');
       return;
     }
@@ -1177,8 +1262,7 @@ async function saveApiKey() {
       return;
     }
 
-    state.apiKey = val;
-    localStorage.setItem(KEY_API, val);
+    persistKey(modalProvider, val);
     updateApiPill();
     closeModal();
     if (state.pendingPersonaId) {
@@ -1190,18 +1274,16 @@ async function saveApiKey() {
       errEl.textContent = 'CORS: Open this page via GitHub Pages or a local server, not file://';
     } else if (e.message?.includes('fetch') || e.name === 'TypeError') {
       errEl.textContent = 'Network error. Saving key anyway — try chatting once connected.';
-      state.apiKey = val;
-      localStorage.setItem(KEY_API, val);
+      persistKey(modalProvider, val);
       updateApiPill();
       closeModal();
       if (state.pendingPersonaId) { selectPersona(state.pendingPersonaId); state.pendingPersonaId = null; }
     } else {
-      state.apiKey = val;
-      localStorage.setItem(KEY_API, val);
+      persistKey(modalProvider, val);
       updateApiPill();
       closeModal();
       if (state.pendingPersonaId) { selectPersona(state.pendingPersonaId); state.pendingPersonaId = null; }
-      showToast('Key saved. Try chatting — if issues persist, verify at console.anthropic.com');
+      showToast('Key saved. Try chatting — if issues persist, verify your key.');
     }
   } finally {
     saveBtn.classList.remove('loading');
@@ -1233,7 +1315,7 @@ function renderPersonas(cat) {
   wrap.querySelectorAll('.persona-card').forEach(card => {
     card.onclick = () => {
       const pid = card.dataset.id;
-      if (!state.apiKey) {
+      if (!currentApiKey()) {
         state.pendingPersonaId = pid;
         openModal();
       } else {
@@ -1286,6 +1368,9 @@ function showChat() {
   // Header
   $('ch-icon').textContent = p.icon;
   $('ch-name').textContent = p.name;
+  $('ch-model').textContent = state.provider === 'openai'
+    ? `Online · GPT-4o`
+    : `Online · Claude claude-sonnet-4-6`;
 
   // Empty state
   $('es-icon').textContent = p.icon;
@@ -1453,25 +1538,42 @@ function createTypingRow() {
 async function streamResponse(userText, typingRow) {
   state.streaming = true;
   const p = state.currentPersona;
+  const isOpenAI = state.provider === 'openai';
 
-  const body = {
-    model: MODEL,
-    max_tokens: 2048,
-    system: p.systemPrompt,
-    messages: state.messages.map(m => ({ role: m.role, content: m.content })),
-    stream: true
-  };
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
+  let url, headers, body;
+  if (isOpenAI) {
+    url = 'https://api.openai.com/v1/chat/completions';
+    headers = {
       'Content-Type': 'application/json',
-      'x-api-key': state.apiKey,
+      'Authorization': `Bearer ${state.apiKeyOpenAI}`
+    };
+    body = {
+      model: MODEL_OPENAI,
+      max_tokens: 2048,
+      messages: [
+        { role: 'system', content: p.systemPrompt },
+        ...state.messages.map(m => ({ role: m.role, content: m.content }))
+      ],
+      stream: true
+    };
+  } else {
+    url = 'https://api.anthropic.com/v1/messages';
+    headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKeyAnthropic,
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-calls': 'true'
-    },
-    body: JSON.stringify(body)
-  });
+    };
+    body = {
+      model: MODEL_ANTHROPIC,
+      max_tokens: 2048,
+      system: p.systemPrompt,
+      messages: state.messages.map(m => ({ role: m.role, content: m.content })),
+      stream: true
+    };
+  }
+
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
@@ -1512,8 +1614,14 @@ async function streamResponse(userText, typingRow) {
       if (data === '[DONE]') continue;
       try {
         const parsed = JSON.parse(data);
-        if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-          fullText += parsed.delta.text;
+        let delta = '';
+        if (isOpenAI) {
+          delta = parsed.choices?.[0]?.delta?.content || '';
+        } else if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+          delta = parsed.delta.text;
+        }
+        if (delta) {
+          fullText += delta;
           bubble.innerHTML = formatContent(fullText);
           container.scrollTop = container.scrollHeight;
         }
@@ -1530,8 +1638,13 @@ function handleApiError(err) {
   let msg = 'Something went wrong. Please try again.';
   if (err.status === 401) {
     msg = 'Invalid API key. Click the key icon to update it.';
-    state.apiKey = '';
-    localStorage.removeItem(KEY_API);
+    if (state.provider === 'openai') {
+      state.apiKeyOpenAI = '';
+      localStorage.removeItem(KEY_API_OPENAI);
+    } else {
+      state.apiKeyAnthropic = '';
+      localStorage.removeItem(KEY_API_ANTHROPIC);
+    }
     updateApiPill();
   } else if (err.status === 429) {
     msg = 'Rate limit hit. Please wait a moment and try again.';
@@ -1543,7 +1656,7 @@ function handleApiError(err) {
     if (location.protocol === 'file:') {
       msg = 'CORS blocked — you must open this page via GitHub Pages or a local server, not file://. See the banner above.';
     } else {
-      msg = 'Network error reaching the Anthropic API. Check your internet connection and try again.';
+      msg = 'Network error reaching the API. Check your internet connection and try again.';
     }
   } else if (err.message) {
     msg = err.message;
