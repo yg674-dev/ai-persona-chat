@@ -487,6 +487,17 @@
     background: var(--bg2); color: var(--text);
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
+  .modal .field select {
+    width: 100%; padding: 12px 16px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 14px;
+    transition: border-color var(--transition); cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%239898b8' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px;
+  }
+  .modal .field select:focus { border-color: var(--accent); outline: none; }
 
   /* Mobile */
   @media (max-width: 700px) {
@@ -561,6 +572,10 @@
         <button type="button" class="toggle-visibility" id="toggle-key-visibility" title="Show/hide key">👁</button>
       </div>
       <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="get-key-link" id="get-key-link">Get your API key from Anthropic Console →</a>
+    </div>
+    <div class="field" id="model-field" style="margin-top:16px">
+      <label>Model</label>
+      <select id="model-select"></select>
     </div>
     <div id="modal-error"></div>
     <div class="modal-btns">
@@ -1029,17 +1044,32 @@ Your approach: put the reader first. Use clear structure (headers, lists, tables
 ];
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-const KEY_API_ANTHROPIC = 'persona_chat_api_key';          // keep old name for compat
-const KEY_API_OPENAI    = 'persona_chat_api_key_openai';
-const KEY_PROVIDER      = 'persona_chat_provider';
-const KEY_LAST          = 'persona_chat_last_persona';
-const MODEL_ANTHROPIC   = 'claude-sonnet-4-6';
-const MODEL_OPENAI      = 'gpt-4o';
+const KEY_API_ANTHROPIC   = 'persona_chat_api_key';          // keep old name for compat
+const KEY_API_OPENAI      = 'persona_chat_api_key_openai';
+const KEY_PROVIDER        = 'persona_chat_provider';
+const KEY_MODEL_ANTHROPIC = 'persona_chat_model_anthropic';
+const KEY_MODEL_OPENAI    = 'persona_chat_model_openai';
+const KEY_LAST            = 'persona_chat_last_persona';
+
+const MODELS = {
+  anthropic: [
+    { id: 'claude-opus-4-6',          label: 'Claude Opus 4.6',   desc: 'Most capable' },
+    { id: 'claude-sonnet-4-6',        label: 'Claude Sonnet 4.6', desc: 'Balanced — recommended' },
+    { id: 'claude-haiku-4-5-20251001',label: 'Claude Haiku 4.5',  desc: 'Fast & affordable' },
+  ],
+  openai: [
+    { id: 'gpt-4o',      label: 'GPT-4o',       desc: 'Most capable' },
+    { id: 'gpt-4o-mini', label: 'GPT-4o Mini',  desc: 'Fast & affordable' },
+    { id: 'o1-mini',     label: 'o1 Mini',       desc: 'Advanced reasoning' },
+  ]
+};
 
 let state = {
   apiKeyAnthropic: localStorage.getItem(KEY_API_ANTHROPIC) || '',
   apiKeyOpenAI:    localStorage.getItem(KEY_API_OPENAI)    || '',
-  provider:        localStorage.getItem(KEY_PROVIDER)      || 'anthropic', // 'anthropic' | 'openai'
+  provider:        localStorage.getItem(KEY_PROVIDER)      || 'anthropic',
+  modelAnthropic:  localStorage.getItem(KEY_MODEL_ANTHROPIC) || 'claude-sonnet-4-6',
+  modelOpenAI:     localStorage.getItem(KEY_MODEL_OPENAI)    || 'gpt-4o',
   currentPersona: null,
   messages: [],       // { role, content }
   streaming: false,
@@ -1049,6 +1079,13 @@ let state = {
 
 function currentApiKey() {
   return state.provider === 'openai' ? state.apiKeyOpenAI : state.apiKeyAnthropic;
+}
+function currentModel() {
+  return state.provider === 'openai' ? state.modelOpenAI : state.modelAnthropic;
+}
+function currentModelLabel() {
+  const m = (MODELS[state.provider] || []).find(x => x.id === currentModel());
+  return m ? m.label : currentModel();
 }
 
 let modalProvider = 'anthropic'; // tracks selected tab inside the modal
@@ -1086,6 +1123,21 @@ function init() {
   document.querySelectorAll('.provider-tab').forEach(t => {
     t.onclick = () => { modalProvider = t.dataset.provider; syncModalForProvider(); };
   });
+
+  $('model-select').onchange = () => {
+    const val = $('model-select').value;
+    if (modalProvider === 'anthropic') {
+      state.modelAnthropic = val;
+      localStorage.setItem(KEY_MODEL_ANTHROPIC, val);
+    } else {
+      state.modelOpenAI = val;
+      localStorage.setItem(KEY_MODEL_OPENAI, val);
+    }
+    // If the active provider matches, live-update the chat header
+    if (modalProvider === state.provider && !$('chat').classList.contains('hidden')) {
+      $('ch-model').textContent = `Online · ${currentModelLabel()}`;
+    }
+  };
 
   $('switch-persona-btn').onclick = switchPersona;
   $('clear-chat-btn').onclick = clearChat;
@@ -1172,6 +1224,11 @@ function syncModalForProvider() {
   $('get-key-link').textContent = isOpenAI
     ? 'Get your API key from OpenAI Platform →'
     : 'Get your API key from Anthropic Console →';
+  // Populate model dropdown
+  const activeModelId = isOpenAI ? state.modelOpenAI : state.modelAnthropic;
+  $('model-select').innerHTML = (MODELS[modalProvider] || []).map(m =>
+    `<option value="${m.id}"${m.id === activeModelId ? ' selected' : ''}>${m.label} — ${m.desc}</option>`
+  ).join('');
   $('modal-error').textContent = '';
   $('api-key-field').classList.remove('input-error');
 }
@@ -1368,9 +1425,7 @@ function showChat() {
   // Header
   $('ch-icon').textContent = p.icon;
   $('ch-name').textContent = p.name;
-  $('ch-model').textContent = state.provider === 'openai'
-    ? `Online · GPT-4o`
-    : `Online · Claude claude-sonnet-4-6`;
+  $('ch-model').textContent = `Online · ${currentModelLabel()}`;
 
   // Empty state
   $('es-icon').textContent = p.icon;
@@ -1548,7 +1603,7 @@ async function streamResponse(userText, typingRow) {
       'Authorization': `Bearer ${state.apiKeyOpenAI}`
     };
     body = {
-      model: MODEL_OPENAI,
+      model: state.modelOpenAI,
       max_tokens: 2048,
       messages: [
         { role: 'system', content: p.systemPrompt },
@@ -1565,7 +1620,7 @@ async function streamResponse(userText, typingRow) {
       'anthropic-dangerous-direct-browser-calls': 'true'
     };
     body = {
-      model: MODEL_ANTHROPIC,
+      model: state.modelAnthropic,
       max_tokens: 2048,
       system: p.systemPrompt,
       messages: state.messages.map(m => ({ role: m.role, content: m.content })),
