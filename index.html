@@ -286,6 +286,17 @@
     cursor: pointer; transition: all var(--transition); line-height: 1.4;
   }
   .sidebar-starter:hover { border-color: var(--accent); color: var(--text); }
+  .sidebar-learning { display: flex; flex-direction: column; gap: 6px; }
+  .sidebar-learn-btn {
+    padding: 8px 12px; background: transparent;
+    border: 1px solid var(--accent); border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--accent); text-align: left;
+    cursor: pointer; transition: all var(--transition); line-height: 1.4;
+    display: flex; align-items: flex-start; gap: 6px;
+  }
+  .sidebar-learn-btn::before { content: '🎓'; flex-shrink: 0; font-size: 11px; }
+  .sidebar-learn-btn:hover { background: var(--accent-glow); color: var(--text); border-color: var(--accent2); }
+
   .sidebar-spacer { flex: 1; }
   .sidebar-switch {
     width: 100%; padding: 11px; border-radius: var(--radius-sm);
@@ -598,6 +609,9 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-label">Starter Questions</div>
     <div class="sidebar-starters" id="sb-starters"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">🎓 Skills Training</div>
+    <div class="sidebar-learning" id="sb-learning"></div>
     <div class="sidebar-spacer"></div>
     <button class="sidebar-switch" id="switch-persona-btn">⇄ &nbsp;Switch Persona</button>
     <button class="sidebar-clear" id="clear-chat-btn">Clear conversation</button>
@@ -1261,6 +1275,131 @@ Your approach: strategy before aesthetics—a beautiful brand built on a weak fo
   }
 ];
 
+// ─── LEARNING PROMPTS ────────────────────────────────────────────────────────
+// Structured skill-building exercises: AI teaches, challenges, and coaches the user.
+const LEARNING_PROMPTS = {
+  'software-engineer': [
+    'Give me a code review exercise — share code with a real flaw and guide me through finding and fixing it',
+    'Run a system design interview with me for a product I choose: ask me questions, evaluate my answers, and teach the key concepts',
+    'Quiz me on a data structure or algorithm with progressively harder examples, then explain my mistakes'
+  ],
+  'data-scientist': [
+    'Give me a messy dataset scenario and walk me through EDA step by step — ask me what to look for at each stage',
+    'Run an ML case study interview: give me a business problem and guide me through framing it and choosing the right model',
+    'Teach me A/B test design from scratch — quiz my understanding, then give me a real scenario to work through'
+  ],
+  'ai-ml-engineer': [
+    'Walk me through building a RAG system from scratch — explain each component and quiz me on design decisions',
+    'Give me a prompt engineering challenge: give me a task, let me write a prompt, then coach me through improving it',
+    'Teach me LLM evaluation — what to measure and how — then give me a real pipeline to critique'
+  ],
+  'marketing-expert': [
+    'Give me a real product and guide me through building its positioning statement — question my thinking at every step',
+    'Run a go-to-market case study: describe a product with weak traction and coach me through diagnosing it',
+    'Teach me the RACE framework by applying it live to a business I choose — test my understanding as we go'
+  ],
+  'financial-advisor': [
+    'Give me a personal finance scenario and quiz me on the right approach before explaining the optimal strategy',
+    'Walk me through reading a company\'s financial statements — give me a real example and test my ability to spot key signals',
+    'Teach me portfolio construction with a live exercise: I\'ll describe my goals and you\'ll quiz me on building the right allocation'
+  ],
+  'legal-advisor': [
+    'Give me a sample contract clause and quiz me on identifying the risks before explaining what to negotiate',
+    'Walk me through the legal considerations for starting a company — quiz me at each milestone',
+    'Present a founder legal scenario and guide me through thinking about it like a lawyer'
+  ],
+  'business-strategist': [
+    'Give me a strategy case study and guide me through solving it — ask me questions before giving answers',
+    'Teach me Porter\'s Five Forces by applying it live to an industry I choose, then quiz me on the analysis',
+    'Walk me through a competitive analysis exercise — I\'ll pick a company and you\'ll teach the framework as we apply it'
+  ],
+  'copywriter': [
+    'Give me a copywriting brief and let me write a headline — then coach me through multiple iterations with specific feedback',
+    'Teach me the PAS framework: give me a product, let me write copy, then refine it together explaining each fix',
+    'Run a brand voice exercise: share example copy and quiz me on identifying the tone, then coach me writing in that style'
+  ],
+  'ux-designer': [
+    'Give me a design critique exercise — describe a real product screen and guide me through evaluating it systematically',
+    'Walk me through a UX research plan: I\'ll describe a problem and you\'ll teach me how to design the right study',
+    'Teach me UX principles with real examples — show me a design and ask me to identify which principle it applies or violates'
+  ],
+  'content-creator': [
+    'Coach me through writing a YouTube hook for a topic I choose — iterate through multiple drafts with feedback',
+    'Give me a content strategy challenge: I\'ll describe my niche and you\'ll quiz me on building an editorial plan',
+    'Teach me the hook-story-offer framework — I\'ll write each section and you\'ll coach me on making it work'
+  ],
+  'devops-engineer': [
+    'Walk me through designing a CI/CD pipeline — quiz me on each architectural choice and explain the trade-offs',
+    'Give me a production incident scenario and guide me through the response process, testing my reasoning at each step',
+    'Teach me Kubernetes by giving me practical scenarios and asking me to configure each resource before showing the answer'
+  ],
+  'security-expert': [
+    'Run a threat modeling exercise: give me an application architecture and teach me to identify threats using STRIDE',
+    'Quiz me on OWASP Top 10 with real vulnerable code — ask me to spot and fix each issue before explaining it',
+    'Give me a security architecture review scenario and coach me through thinking like an attacker first'
+  ],
+  'product-manager': [
+    'Run a product case study interview with me: give me a challenge and coach me through the PM framework step by step',
+    'Give me a messy backlog and teach me to prioritize it — quiz me on my reasoning and explain the trade-offs',
+    'Walk me through writing a PRD: ask me questions to surface each section, then give structured feedback'
+  ],
+  'startup-advisor': [
+    'Review my pitch as a skeptical VC — ask hard questions, tell me where I\'m weak, then coach me on fixing it',
+    'Give me a founder dilemma (pivot, fundraise, hire) and guide me through a structured decision-making framework',
+    'Teach me unit economics by working through a real SaaS model with me — quiz me on the key levers'
+  ],
+  'sales-expert': [
+    'Run a sales roleplay: you\'re a skeptical enterprise buyer, I\'m pitching — give me detailed feedback after',
+    'Walk me through MEDDIC by applying it to a deal I describe — quiz me at each stage before moving on',
+    'Give me a common sales objection and coach me through crafting the response, then critique my delivery'
+  ],
+  'technical-writer': [
+    'Give me a complex concept and walk me through explaining it clearly — critique my drafts with specific rewrites',
+    'Teach me information architecture by giving me a real docs structure to evaluate and improve step by step',
+    'Share a poorly written API doc section and coach me through rewriting it with proper structure and clarity'
+  ],
+  'cloud-architect': [
+    'Give me an architecture design challenge and quiz me at each decision point — teach me the trade-offs before revealing the best approach',
+    'Walk me through an AWS Well-Architected Review for a hypothetical app, testing my knowledge of each pillar',
+    'Teach me cloud networking by giving me a real scenario and asking me to design the VPC and connectivity before critiquing it'
+  ],
+  'data-engineer': [
+    'Give me a data pipeline design challenge and guide me through the key architecture decisions — quiz me before explaining',
+    'Walk me through dbt best practices by reviewing a sample project structure and asking me to identify improvements',
+    'Teach me dimensional data modeling: give me a business scenario and guide me through building the model from scratch'
+  ],
+  'executive-coach': [
+    'Run a leadership 360 with me: ask about my role, team, and challenges, then give me a structured developmental feedback report',
+    'Give me a leadership scenario (difficult conversation, managing up) and coach me through handling it step by step',
+    'Teach me the GROW model by working through one of my real professional goals with me — ask questions, don\'t just advise'
+  ],
+  'hr-people-leader': [
+    'Walk me through designing a compensation structure for a startup: quiz me on each decision and explain the rationale',
+    'Give me a difficult HR scenario (performance issue, team conflict) and coach me through handling it correctly',
+    'Teach me structured interviewing: apply it to a role I define, quiz me on reducing bias at each stage'
+  ],
+  'operations-manager': [
+    'Give me an operational inefficiency scenario and teach me value stream mapping by walking through it together',
+    'Walk me through a root cause analysis exercise: describe a process failure and guide me through 5 Whys',
+    'Teach me Lean principles live: give me an operational scenario and ask me to identify each type of waste'
+  ],
+  'growth-strategist': [
+    'Give me a real product and teach me to map its growth loops — quiz me on identifying the levers before explaining them',
+    'Teach me A/B test design with a real hypothesis: guide me through setting up the experiment correctly step by step',
+    'Run a growth case study: describe a company with plateau growth and coach me through diagnosing and fixing it'
+  ],
+  'customer-success-manager': [
+    'Walk me through designing a customer health scorecard — quiz me on which metrics matter and why before revealing the answer',
+    'Give me a customer at-risk scenario and coach me through the save play, including what to say on the call',
+    'Teach me how to run a high-value QBR by guiding me through building a deck for a real customer situation'
+  ],
+  'brand-strategist': [
+    'Give me a brand positioning exercise: describe a startup and guide me through developing the brand strategy from scratch',
+    'Critique a brand I choose — teach me to evaluate it across strategy, identity, and voice using a clear framework',
+    'Teach me to write a creative brief by working through one together for a real rebrand scenario — quiz me at each section'
+  ]
+};
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const KEY_API_ANTHROPIC   = 'persona_chat_api_key';          // keep old name for compat
 const KEY_API_OPENAI      = 'persona_chat_api_key_openai';
@@ -1637,6 +1776,16 @@ function showChat() {
     `<button class="sidebar-starter">${s}</button>`
   ).join('');
   sbStarters.querySelectorAll('.sidebar-starter').forEach(btn => {
+    btn.onclick = () => sendStarter(btn.textContent);
+  });
+
+  // Learning prompts
+  const sbLearning = $('sb-learning');
+  const learnPrompts = LEARNING_PROMPTS[p.id] || [];
+  sbLearning.innerHTML = learnPrompts.map(s =>
+    `<button class="sidebar-learn-btn">${s}</button>`
+  ).join('');
+  sbLearning.querySelectorAll('.sidebar-learn-btn').forEach(btn => {
     btn.onclick = () => sendStarter(btn.textContent);
   });
 
