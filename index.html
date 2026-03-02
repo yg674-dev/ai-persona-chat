@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExpertChat — 24 AI Expert Personas | Claude & OpenAI | Skills Training</title>
+<title>Chat with your AI Expert</title>
 <meta name="description" content="Chat with 24 AI expert personas across tech, business, product, and creative fields. Powered by Claude or OpenAI — choose your model. Includes guided Skills Training to help you become the expert yourself.">
 <link rel="canonical" href="https://yg674-dev.github.io/ai-persona-chat/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -326,6 +326,14 @@
     display: flex; align-items: center; gap: 14px; flex-shrink: 0;
     background: var(--bg2);
   }
+  #home-btn {
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    transition: all var(--transition);
+  }
+  #home-btn:hover { border-color: var(--accent); color: var(--text); background: var(--accent-glow); }
   .chat-header-icon { font-size: 28px; }
   .chat-header-info { flex: 1; min-width: 0; }
   .chat-header-name { font-size: 16px; font-weight: 700; }
@@ -532,7 +540,7 @@
 
 <!-- TOP BAR -->
 <div id="topbar">
-  <span class="brand">✦ ExpertChat</span>
+  <span class="brand">✦ Chat with your AI Expert</span>
   <div class="actions">
     <button class="icon-btn" id="api-key-btn" title="API Key settings">🔑</button>
     <button class="icon-btn" id="theme-btn" title="Toggle theme">🌙</button>
@@ -542,7 +550,7 @@
 <!-- LANDING -->
 <div id="landing">
   <div class="hero">
-    <h1>Chat & Learn from 24 AI Experts</h1>
+    <h1>Chat with your AI Expert</h1>
     <p>Choose from 24 professional personas across tech, business, product, and creative fields. Get expert advice or use Skills Training to become the expert yourself — powered by Claude or OpenAI, with your choice of model.</p>
     <div class="api-pill" id="api-status-pill">
       <span class="dot no-key" id="api-dot"></span>
@@ -620,6 +628,7 @@
   <!-- Main -->
   <div id="chat-main">
     <div id="chat-header">
+      <button id="home-btn" title="Back to homepage">← Home</button>
       <div class="chat-header-icon" id="ch-icon"></div>
       <div class="chat-header-info">
         <div class="chat-header-name" id="ch-name"></div>
@@ -1497,6 +1506,7 @@ function init() {
   };
 
   $('switch-persona-btn').onclick = switchPersona;
+  $('home-btn').onclick = switchPersona;
   $('clear-chat-btn').onclick = clearChat;
   $('send-btn').onclick = sendMessage;
   $('msg-input').onkeydown = handleInputKey;
