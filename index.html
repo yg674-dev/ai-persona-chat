@@ -518,6 +518,92 @@
   }
   .modal .field select:focus { border-color: var(--accent); outline: none; }
 
+  /* ── MCP MODAL ── */
+  .mcp-modal { max-width: 540px; }
+  .mcp-server-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; max-height: 220px; overflow-y: auto; }
+  .mcp-server-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .mcp-server-item.disabled { opacity: 0.55; }
+  .mcp-server-info { flex: 1; min-width: 0; }
+  .mcp-server-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .mcp-server-url {
+    font-size: 11px; color: var(--text2); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .mcp-toggle {
+    width: 36px; height: 20px; border-radius: 10px; background: var(--border);
+    border: none; cursor: pointer; position: relative;
+    transition: background var(--transition); flex-shrink: 0;
+  }
+  .mcp-toggle.on { background: var(--green); }
+  .mcp-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%; background: white;
+    transition: transform var(--transition);
+  }
+  .mcp-toggle.on::after { transform: translateX(16px); }
+  .mcp-delete {
+    width: 28px; height: 28px; border-radius: 50%; background: none;
+    color: var(--text2); font-size: 14px; flex-shrink: 0;
+    transition: all var(--transition); display: flex; align-items: center; justify-content: center;
+  }
+  .mcp-delete:hover { background: var(--red); color: white; }
+  .mcp-add-form { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .mcp-add-row { display: flex; gap: 8px; }
+  .mcp-add-row input {
+    flex: 1; padding: 10px 14px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; transition: border-color var(--transition);
+  }
+  .mcp-add-row input:focus { border-color: var(--accent); }
+  .mcp-add-row input.token-input { flex: 0 0 140px; }
+  .mcp-add-btn {
+    padding: 10px 18px; border-radius: var(--radius-sm); background: var(--accent);
+    color: white; font-size: 13px; font-weight: 600; flex-shrink: 0;
+    transition: all var(--transition);
+  }
+  .mcp-add-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+  .mcp-empty { text-align: center; padding: 24px 16px; color: var(--text2); font-size: 13px; line-height: 1.6; }
+  .mcp-modal-note {
+    font-size: 12px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px; line-height: 1.5;
+  }
+  .mcp-modal-note strong { color: var(--accent2); }
+
+  /* MCP badge in chat header */
+  .mcp-badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+    background: rgba(52,211,153,0.1); border: 1px solid var(--green);
+    border-radius: 100px; font-size: 11px; color: var(--green);
+    cursor: pointer; transition: all var(--transition); flex-shrink: 0;
+  }
+  .mcp-badge:hover { background: rgba(52,211,153,0.2); }
+
+  /* MCP sidebar section */
+  .sidebar-mcp { display: flex; flex-direction: column; gap: 6px; }
+  .sidebar-mcp-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 12px;
+  }
+  .sidebar-mcp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .sidebar-mcp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
+  .sidebar-mcp-manage {
+    padding: 8px 12px; background: transparent; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 12px; color: var(--accent);
+    cursor: pointer; width: 100%; text-align: left; transition: all var(--transition);
+    display: flex; align-items: center; gap: 6px; margin-top: 4px;
+  }
+  .sidebar-mcp-manage:hover { border-color: var(--accent); background: var(--accent-glow); }
+
+  /* MCP tool use indicator in chat bubbles */
+  .mcp-tool-indicator {
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+    color: var(--accent2); padding: 6px 0 10px; animation: pulse 1.5s infinite;
+  }
+
   /* Mobile */
   @media (max-width: 700px) {
     #sidebar { display: none; }
@@ -542,6 +628,7 @@
 <div id="topbar">
   <span class="brand">✦ Chat with your AI Expert</span>
   <div class="actions">
+    <button class="icon-btn" id="mcp-btn" title="MCP Servers — connect external knowledge bases & tools">⚡</button>
     <button class="icon-btn" id="api-key-btn" title="API Key settings">🔑</button>
     <button class="icon-btn" id="theme-btn" title="Toggle theme">🌙</button>
   </div>
@@ -604,6 +691,39 @@
   </div>
 </div>
 
+<!-- MCP MODAL -->
+<div id="mcp-modal-overlay" class="hidden">
+  <div class="modal mcp-modal">
+    <button class="modal-close" id="mcp-modal-close">✕</button>
+    <h2>⚡ MCP Servers</h2>
+    <p>Connect <strong>Model Context Protocol</strong> servers to give your AI expert access to external knowledge bases, documents, and custom tools — enabling RAG and real-time data retrieval. Works with Claude (Anthropic) only.</p>
+    <div class="mcp-modal-note">
+      <strong>How it works:</strong> Paste the HTTP/SSE URL of any MCP-compatible server. Claude will automatically discover and use its tools (search, retrieval, APIs) to give more accurate, grounded answers for the selected persona.
+    </div>
+    <div class="sidebar-label" style="margin-bottom:10px">Connected Servers</div>
+    <div id="mcp-server-list" class="mcp-server-list">
+      <!-- rendered by JS -->
+    </div>
+    <div class="mcp-add-form">
+      <div class="sidebar-label">Add New Server</div>
+      <div class="mcp-add-row">
+        <input type="text" id="mcp-name-input" placeholder="Name (e.g. Company Docs)" />
+      </div>
+      <div class="mcp-add-row">
+        <input type="url" id="mcp-url-input" placeholder="Server URL (https://your-mcp-server.com/sse)" />
+      </div>
+      <div class="mcp-add-row">
+        <input type="text" id="mcp-token-input" class="token-input" placeholder="Auth token (optional)" />
+        <button class="mcp-add-btn" id="mcp-add-btn">+ Add</button>
+      </div>
+    </div>
+    <div id="mcp-modal-error" style="font-size:13px;color:var(--red);min-height:18px;margin-top:8px"></div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn-primary" id="mcp-modal-done">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- CHAT -->
 <div id="chat" class="hidden">
   <!-- Sidebar -->
@@ -620,6 +740,10 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-label">🎓 Skills Training</div>
     <div class="sidebar-learning" id="sb-learning"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">⚡ MCP Servers</div>
+    <div class="sidebar-mcp" id="sb-mcp-list"></div>
+    <button class="sidebar-mcp-manage" id="sb-mcp-manage-btn">⚡ Manage MCP Servers</button>
     <div class="sidebar-spacer"></div>
     <button class="sidebar-switch" id="switch-persona-btn">⇄ &nbsp;Switch Persona</button>
     <button class="sidebar-clear" id="clear-chat-btn">Clear conversation</button>
@@ -636,6 +760,9 @@
           <span class="status-dot"></span> <span id="ch-model">Online · Claude claude-sonnet-4-6</span>
         </div>
       </div>
+      <button id="mcp-badge" class="mcp-badge hidden" title="MCP Servers active — click to manage">
+        ⚡ <span id="mcp-badge-count">0</span> MCP
+      </button>
     </div>
 
     <div id="messages">
@@ -1676,6 +1803,7 @@ const KEY_PROVIDER        = 'persona_chat_provider';
 const KEY_MODEL_ANTHROPIC = 'persona_chat_model_anthropic';
 const KEY_MODEL_OPENAI    = 'persona_chat_model_openai';
 const KEY_LAST            = 'persona_chat_last_persona';
+const KEY_MCP_SERVERS     = 'persona_chat_mcp_servers';
 
 const MODELS = {
   anthropic: [
@@ -1700,7 +1828,9 @@ let state = {
   messages: [],       // { role, content }
   streaming: false,
   theme: localStorage.getItem('persona_chat_theme') || 'dark',
-  pendingPersonaId: null  // persona selected before key entered
+  pendingPersonaId: null,  // persona selected before key entered
+  mcpServers: JSON.parse(localStorage.getItem(KEY_MCP_SERVERS) || '[]')
+  // each entry: { id, name, url, token, enabled }
 };
 
 function currentApiKey() {
@@ -1772,6 +1902,16 @@ function init() {
   $('msg-input').onkeydown = handleInputKey;
   $('msg-input').oninput = autoResize;
 
+  // MCP bindings
+  $('mcp-btn').onclick = openMcpModal;
+  $('mcp-modal-close').onclick = closeMcpModal;
+  $('mcp-modal-done').onclick = closeMcpModal;
+  $('mcp-badge').onclick = openMcpModal;
+  $('sb-mcp-manage-btn').onclick = openMcpModal;
+  $('mcp-add-btn').onclick = addMcpServer;
+  $('mcp-url-input').onkeydown = e => { if (e.key === 'Enter') addMcpServer(); };
+  $('mcp-modal-overlay').onclick = e => { if (e.target === $('mcp-modal-overlay')) closeMcpModal(); };
+
   document.querySelectorAll('.cat-tab').forEach(t => {
     t.onclick = () => {
       document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
@@ -1779,6 +1919,9 @@ function init() {
       renderPersonas(t.dataset.cat);
     };
   });
+
+  updateMcpBadge();
+  updateSidebarMcp();
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -1948,6 +2091,7 @@ async function saveApiKey() {
 
     persistKey(modalProvider, val);
     updateApiPill();
+    updateMcpBadge();
     closeModal();
     if (state.pendingPersonaId) {
       selectPersona(state.pendingPersonaId);
@@ -2063,6 +2207,8 @@ function showChat() {
   $('ch-icon').textContent = p.icon;
   $('ch-name').textContent = p.name;
   $('ch-model').textContent = `Online · ${currentModelLabel()}`;
+  updateMcpBadge();
+  updateSidebarMcp();
 
   // Empty state
   $('es-icon').textContent = p.icon;
@@ -2154,7 +2300,7 @@ function formatContent(text) {
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ─── SEND ─────────────────────────────────────────────────────────────────────
@@ -2249,6 +2395,7 @@ async function streamResponse(userText, typingRow) {
       stream: true
     };
   } else {
+    const active = activeMcpServers();
     url = 'https://api.anthropic.com/v1/messages';
     headers = {
       'Content-Type': 'application/json',
@@ -2256,13 +2403,23 @@ async function streamResponse(userText, typingRow) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-calls': 'true'
     };
+    if (active.length) {
+      headers['anthropic-beta'] = 'mcp-client-2025-04-04';
+    }
     body = {
       model: state.modelAnthropic,
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: p.systemPrompt,
       messages: state.messages.map(m => ({ role: m.role, content: m.content })),
       stream: true
     };
+    if (active.length) {
+      body.mcp_servers = active.map(s => {
+        const entry = { type: 'url', url: s.url, name: s.name };
+        if (s.token) entry.authorization_token = s.token;
+        return entry;
+      });
+    }
   }
 
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
@@ -2290,6 +2447,8 @@ async function streamResponse(userText, typingRow) {
   const bubble = row.querySelector('.msg-bubble');
 
   let fullText = '';
+  let inToolUse = false;
+  let currentToolName = '';
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
 
@@ -2309,8 +2468,23 @@ async function streamResponse(userText, typingRow) {
         let delta = '';
         if (isOpenAI) {
           delta = parsed.choices?.[0]?.delta?.content || '';
-        } else if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-          delta = parsed.delta.text;
+        } else if (parsed.type === 'content_block_start') {
+          if (parsed.content_block?.type === 'tool_use') {
+            inToolUse = true;
+            currentToolName = parsed.content_block.name || 'tool';
+            // Show tool use indicator while MCP tool is being called
+            const indicator = `<div class="mcp-tool-indicator">⚡ Querying <strong>${escapeHtml(currentToolName)}</strong>…</div>`;
+            bubble.innerHTML = indicator + (fullText ? formatContent(fullText) : '');
+            container.scrollTop = container.scrollHeight;
+          } else if (parsed.content_block?.type === 'text') {
+            inToolUse = false;
+          }
+        } else if (parsed.type === 'content_block_delta') {
+          if (parsed.delta?.type === 'text_delta') {
+            delta = parsed.delta.text;
+            inToolUse = false;
+          }
+          // Skip input_json_delta (MCP tool input streaming)
         }
         if (delta) {
           fullText += delta;
@@ -2323,6 +2497,115 @@ async function streamResponse(userText, typingRow) {
 
   bubble.classList.remove('cursor-blink');
   state.messages.push({ role: 'assistant', content: fullText });
+}
+
+// ─── MCP SERVERS ──────────────────────────────────────────────────────────────
+function openMcpModal() {
+  renderMcpList();
+  $('mcp-modal-overlay').classList.remove('hidden');
+  $('mcp-modal-error').textContent = '';
+  $('mcp-name-input').value = '';
+  $('mcp-url-input').value = '';
+  $('mcp-token-input').value = '';
+}
+
+function closeMcpModal() {
+  $('mcp-modal-overlay').classList.add('hidden');
+  updateMcpBadge();
+  updateSidebarMcp();
+}
+
+function saveMcpServers() {
+  localStorage.setItem(KEY_MCP_SERVERS, JSON.stringify(state.mcpServers));
+}
+
+function renderMcpList() {
+  const list = $('mcp-server-list');
+  if (!state.mcpServers.length) {
+    list.innerHTML = `<div class="mcp-empty">No servers added yet.<br>Add an MCP server URL below to enable RAG and external tools for your personas.</div>`;
+    return;
+  }
+  list.innerHTML = state.mcpServers.map((s, i) => `
+    <div class="mcp-server-item ${s.enabled ? '' : 'disabled'}" data-idx="${i}">
+      <div class="mcp-server-info">
+        <div class="mcp-server-name">${escapeHtml(s.name)}</div>
+        <div class="mcp-server-url" title="${escapeHtml(s.url)}">${escapeHtml(s.url)}</div>
+      </div>
+      <button class="mcp-toggle ${s.enabled ? 'on' : ''}" data-idx="${i}" title="${s.enabled ? 'Disable' : 'Enable'}"></button>
+      <button class="mcp-delete" data-idx="${i}" title="Remove server">✕</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.mcp-toggle').forEach(btn => {
+    btn.onclick = () => toggleMcpServer(parseInt(btn.dataset.idx));
+  });
+  list.querySelectorAll('.mcp-delete').forEach(btn => {
+    btn.onclick = () => removeMcpServer(parseInt(btn.dataset.idx));
+  });
+}
+
+function addMcpServer() {
+  const name  = $('mcp-name-input').value.trim();
+  const url   = $('mcp-url-input').value.trim();
+  const token = $('mcp-token-input').value.trim();
+  const errEl = $('mcp-modal-error');
+
+  if (!name) { errEl.textContent = 'Please enter a server name.'; return; }
+  if (!url)  { errEl.textContent = 'Please enter the MCP server URL.'; return; }
+  try { new URL(url); } catch (_) { errEl.textContent = 'Please enter a valid URL (https://...).'; return; }
+
+  errEl.textContent = '';
+  state.mcpServers.push({
+    id: Date.now().toString(),
+    name, url, token, enabled: true
+  });
+  saveMcpServers();
+  $('mcp-name-input').value = '';
+  $('mcp-url-input').value = '';
+  $('mcp-token-input').value = '';
+  renderMcpList();
+}
+
+function removeMcpServer(idx) {
+  state.mcpServers.splice(idx, 1);
+  saveMcpServers();
+  renderMcpList();
+}
+
+function toggleMcpServer(idx) {
+  state.mcpServers[idx].enabled = !state.mcpServers[idx].enabled;
+  saveMcpServers();
+  renderMcpList();
+}
+
+function activeMcpServers() {
+  return state.mcpServers.filter(s => s.enabled);
+}
+
+function updateMcpBadge() {
+  const active = activeMcpServers();
+  const badge = $('mcp-badge');
+  if (active.length && state.provider === 'anthropic') {
+    badge.classList.remove('hidden');
+    $('mcp-badge-count').textContent = active.length;
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function updateSidebarMcp() {
+  const list = $('sb-mcp-list');
+  const active = activeMcpServers();
+  if (!active.length) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:4px 0">No servers connected</div>`;
+    return;
+  }
+  list.innerHTML = active.map(s => `
+    <div class="sidebar-mcp-item">
+      <div class="sidebar-mcp-dot"></div>
+      <div class="sidebar-mcp-name" title="${escapeHtml(s.url)}">${escapeHtml(s.name)}</div>
+    </div>
+  `).join('');
 }
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
