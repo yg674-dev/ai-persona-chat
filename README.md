@@ -7,16 +7,22 @@ what it needs to know before answering, not a one-shot reply.
 
 ---
 
-## 1. TL;DR
+## 1. Business goal
 
-General-purpose chat assistants answer immediately and confidently, which is the wrong
-behavior when the question is under-specified — and most real questions are. Chat with your
-AI Expert routes the user to one of 32 domain personas, each of which opens by asking the
-two or three things that actually change the answer, then works the task with the user
-instead of at them.
+This is only worth building if people **finish tasks** with it, not if they start sessions. The
+goal is to convert one-off assistant usage into completed work — and the bet on how: make the
+assistant ask before it answers, on the theory that one short clarification round buys a
+materially better first answer, and that a domain persona is what makes that clarification
+competent instead of generic.
 
-Working prototype and startup concept. Two builds live here: the deployed single-file app
-and a modular refactor.
+The gap it addresses: general-purpose chat assistants answer immediately and confidently, which is
+the wrong behavior when the question is under-specified — and most real questions are. Chat with
+your AI Expert routes the user to one of 32 domain personas, each of which opens by asking the two
+or three things that actually change the answer, then works the task *with* the user instead of at
+them.
+
+Working prototype and startup concept. Two builds live here: the deployed single-file app and a
+modular refactor.
 
 ## 2. Problem
 
