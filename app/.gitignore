@@ -1,0 +1,16 @@
+# Secrets — never commit
+backend/.env
+*.env
+.env.local
+.env.production
+
+# Node
+backend/node_modules/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright browsers
+backend/playwright-cache/
